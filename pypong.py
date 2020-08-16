@@ -28,9 +28,13 @@ bola_raio = 10
 bola_vel_x = 1
 bola_vel_y = 1
 
+paddle_largura = 10
+paddle_altura = 100
+paddle_tamanho = (paddle_largura, paddle_altura)
+
 tela = pygame.display.set_mode(size=tamanho_tela)
 clock = pygame.time.Clock()
-clock.tick(60)
+clock.tick(40)
 
 
 class Quadra:
@@ -77,9 +81,85 @@ class Bola:
         if self.pos_y <= 0 or self.pos_y >= self.quadra.altura:
             self.vel_y *= -1
 
+    def bola_reset(self):
+        self.pos_x = int(quadra.largura / 2)
+        self.pos_y = int(quadra.altura / 2)
+        self.desenha()
+        pygame.time.delay(1500)
+
+
+class Paddle:
+    def __init__(self, tamanho, cor, quadra, bola):
+        self.tamanho = tamanho
+        self.largura = tamanho[0]
+        self.altura = tamanho[1]
+        self.cor = cor
+        self.pos_x = 0
+        self.pos_y = int(quadra.altura / 2 - self.altura / 2)
+        self.quadra = quadra
+        self.bola = bola
+
+    def desenha(self):
+        paddle_rect = pygame.Rect(self.pos_x, self.pos_y, self.largura, self.altura)
+        pygame.draw.rect(tela, self.cor, paddle_rect)
+
+    def move(self):
+        pass
+
+
+class Paddle_Jogador(Paddle):
+    def __init__(self, tamanho, cor, quadra, bola):
+        super().__init__(tamanho, cor, quadra, bola)
+        self.pos_x = self.largura
+
+    def mouse_pos(self):
+        x, y = pygame.mouse.get_pos()
+        self.pos_y = y - int(self.altura/2)
+
+    def move(self):
+        self.mouse_pos()
+        if self.pos_y <= 0:
+            self.pos_y = 0
+        if self.pos_y >= quadra.altura - self.altura:
+            self.pos_y = quadra.altura - self.altura
+
+        if bola.pos_x <= self.pos_x + self.largura:
+            if self.pos_y <= bola.pos_y <= self.pos_y + self.altura:
+                self.bola.vel_x *= -1
+            else:
+                self.bola.bola_reset()
+        elif bola.pos_x <= self.pos_x:
+            self.bola.bola_reset()
+
+        self.desenha()
+
+
+
+class Paddle_NPC(Paddle):
+    def __init__(self, tamanho, cor, quadra, bola):
+        super().__init__(tamanho, cor, quadra, bola)
+        self.pos_x = quadra.largura - self.largura * 2
+
+    def move(self):
+        self.pos_y = bola.pos_y - int(self.altura / 2)
+        if self.pos_y <= 0:
+            self.pos_y = 0
+        if self.pos_y >= quadra.altura - self.altura:
+            self.pos_y = quadra.altura - self.altura
+
+        if bola.pos_x >= self.pos_x:
+            if self.pos_y <= bola.pos_y <= self.pos_y + self.altura:
+                self.bola.vel_x *= -1
+            else:
+                self.bola.bola_reset()
+
+        self.desenha()
+
 
 quadra = Quadra(tamanho_quadra, PRETO)
-bola = Bola(bola_raio, bola_vel_x, bola_vel_y, VERMELHO, quadra)
+bola = Bola(bola_raio, bola_vel_x, bola_vel_y, BRANCO, quadra)
+paddle_jogador = Paddle_Jogador(paddle_tamanho, VERMELHO, quadra, bola)
+paddle_NPC = Paddle_NPC(paddle_tamanho, AMARELO, quadra, bola)
 
 while CONTINUA:
     for event in pygame.event.get():
@@ -87,8 +167,12 @@ while CONTINUA:
             CONTINUA = False
 
     quadra.desenha()
-    # bola.desenha()
+    bola.desenha()
     bola.move()
+    paddle_jogador.desenha()
+    paddle_jogador.move()
+    paddle_NPC.desenha()
+    paddle_NPC.move()
 
     pygame.display.flip()
     tela.fill(AZUL)
